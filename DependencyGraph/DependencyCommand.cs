@@ -105,41 +105,90 @@ namespace DependencyGraph
         {
             var _applicationObject = await ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE2;
             var serviceProvider = (Microsoft.VisualStudio.OLE.Interop.IServiceProvider)_applicationObject;
-            var solutionService = (IVsSolution)GetService(serviceProvider, typeof(SVsSolution), typeof(IVsSolution));
+            var solutionService = GetService<SVsSolution, IVsSolution>(serviceProvider);
+
+            var projectDependencies = LoadProjectDependencies(_applicationObject);
+            var graph = CreateGraphFrom(projectDependencies);
+            var form = CreateFormFor(graph);
+
+            form.ShowDialog();
+        }
+
+        private static IEnumerable<KeyValuePair<string, string>> LoadProjectDependencies(DTE2 _applicationObject)
+        {
             var solutionBuild = _applicationObject.Solution.SolutionBuild;
+            var buildDependencies = solutionBuild.BuildDependencies
+                .OfType<BuildDependency>()
+                .ToDictionary(bd => bd.Project.UniqueName);
 
-            var dependencyDict = solutionBuild.BuildDependencies.OfType<BuildDependency>().ToDictionary(bd => bd.Project.UniqueName);
+            var startupProjects = (solutionBuild.StartupProjects as object[])?.OfType<string>().ToArray();
 
+            return CreateDependencyList(buildDependencies, startupProjects);
+        }
 
-            var startupProjNameStrings = (solutionBuild.StartupProjects as object[]).OfType<string>().ToArray();
-
+        private static IEnumerable<KeyValuePair<string, string>> CreateDependencyList(Dictionary<string, BuildDependency> buildDependencies, string[] startupProjects)
+        {
             var processedProjects = new List<string>();
-            var pendingProjects = new Stack<string>(startupProjNameStrings);
+            var pendingProjects = new Stack<string>(startupProjects);
 
-            var RESULT = new List<string>();
             while (pendingProjects.Any())
             {
                 var next = pendingProjects.Pop();
-                if (processedProjects.Contains(next))
-                    continue;
-                processedProjects.Add(next);
-
-                var dep = dependencyDict[next];
-                var requiredProjects = dep.RequiredProjects as object[];
-                foreach (var req in requiredProjects)
+                if (!processedProjects.Contains(next))
                 {
-                    var reqProj = req as Project;
-                    RESULT.Add($"[{dep.Project.Name}] -> [{reqProj.Name}]");
-                    pendingProjects.Push(reqProj.UniqueName);
+                    processedProjects.Add(next);
+
+                    var dep = buildDependencies[next];
+                    var requiredProjects = dep.RequiredProjects as object[];
+                    foreach (var req in requiredProjects)
+                    {
+                        var reqProj = req as Project;
+                        pendingProjects.Push(reqProj.UniqueName);
+                        yield return new KeyValuePair<string, string>(dep.Project.Name, reqProj.Name);
+                    }
                 }
             }
-
-
-
-
         }
 
+        private static Microsoft.Msagl.Drawing.Graph CreateGraphFrom(IEnumerable<KeyValuePair<string, string>> dependencies)
+        {
+            var graph = new Microsoft.Msagl.Drawing.Graph("graph");
+            foreach (var edge in dependencies)
+            {
+                graph.AddEdge(edge.Key, edge.Value);
+            }
 
+            //graph.AddEdge("A", "B");
+            //graph.AddEdge("B", "C");
+            //graph.AddEdge("A", "C").Attr.Color = Microsoft.Msagl.Drawing.Color.Green;
+            //graph.FindNode("A").Attr.FillColor = Microsoft.Msagl.Drawing.Color.Magenta;
+            //graph.FindNode("B").Attr.FillColor = Microsoft.Msagl.Drawing.Color.MistyRose;
+            //Microsoft.Msagl.Drawing.Node c = graph.FindNode("C");
+            //c.Attr.FillColor = Microsoft.Msagl.Drawing.Color.PaleGreen;
+            //c.Attr.Shape = Microsoft.Msagl.Drawing.Shape.Diamond;
+            return graph;
+        }
+
+        private static System.Windows.Forms.Form CreateFormFor(Microsoft.Msagl.Drawing.Graph graph)
+        {
+            var form = new System.Windows.Forms.Form();
+            form.SuspendLayout();
+
+            var viewer = new Microsoft.Msagl.GraphViewerGdi.GViewer
+            {
+                Graph = graph,
+                Dock = System.Windows.Forms.DockStyle.Fill
+            };
+            form.Controls.Add(viewer);
+
+            form.ResumeLayout();
+            return form;
+        }
+
+        private I GetService<T, I>(Microsoft.VisualStudio.OLE.Interop.IServiceProvider serviceProvider)
+        {
+            return (I)GetService(serviceProvider, typeof(T), typeof(I));
+        }
 
         private object GetService(Microsoft.VisualStudio.OLE.Interop.IServiceProvider serviceProvider, Type serviceType, Type interfaceType)
         {
