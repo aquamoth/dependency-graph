@@ -98,33 +98,11 @@ namespace DependencyGraph
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-
-            //// Show a message box to prove we were here
-            //string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
-            //string title = "DependencyCommand";
-            //VsShellUtilities.ShowMessageBox(
-            //    this.package,
-            //    message,
-            //    title,
-            //    OLEMSGICON.OLEMSGICON_INFO,
-            //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
-            //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-
             ExecuteAsync().GetAwaiter().GetResult();
         }
 
         private async Task ExecuteAsync()
         {
-            //var dte = await ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE2;
-            //var uiHierarchy = (UIHierarchy)dte.Windows.Item("{3AE79031-E1BC-11D0-8F78-00A0C9110057}").Object;
-            //if (uiHierarchy.SelectedItems is object[] selectedItems)
-            //{
-            //    var selectedHierarchyItems = selectedItems.OfType<UIHierarchyItem>().ToArray();
-            //    var projectItems = selectedHierarchyItems.Select(t => t.Object).OfType<ProjectItem>().ToArray();
-            //    var filesOrFolders = projectItems.Select(p => p.FileNames[1]).ToArray();
-            //...
-            //}
-
             var _applicationObject = await ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE2;
             var serviceProvider = (Microsoft.VisualStudio.OLE.Interop.IServiceProvider)_applicationObject;
             var solutionService = (IVsSolution)GetService(serviceProvider, typeof(SVsSolution), typeof(IVsSolution));
@@ -134,9 +112,6 @@ namespace DependencyGraph
 
 
             var startupProjNameStrings = (solutionBuild.StartupProjects as object[]).OfType<string>().ToArray();
-
-            //var allProjects = _applicationObject.Solution.Projects.OfType<Project>().ToArray();
-            //var startupProjects = allProjects.Where(p => startupProjNameStrings.Contains(p.UniqueName)).ToArray();
 
             var processedProjects = new List<string>();
             var pendingProjects = new Stack<string>(startupProjNameStrings);
@@ -160,75 +135,8 @@ namespace DependencyGraph
             }
 
 
-            var message = string.Join("\n", RESULT);
-            string title = "DependencyCommand";
-            VsShellUtilities.ShowMessageBox(
-                this.package,
-                message,
-                title,
-                OLEMSGICON.OLEMSGICON_INFO,
-                OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST
-            );
-
-            //var dsl_text = WebUtility.HtmlEncode(message);
-            //var data = Encoding.UTF8.GetBytes("dsl_text=" + dsl_text + "&name=");
-            //var request = WebRequest.CreateHttp("https://yuml.me/diagram/scruffy/class/");
-            //request.Method = "POST";
-            //request.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
-            //request.ContentLength = data.Length;
-            //using (var s = request.GetRequestStream())
-            //    s.Write(data, 0, data.Length);
-
-            //var response = (HttpWebResponse)await request.GetResponseAsync();
-            //if(response.StatusCode == HttpStatusCode.OK)
-            //{
-            //    var responseString = await new StreamReader(response.GetResponseStream()).ReadToEndAsync();
-            //    var x = 0;
-            //}
-            //else
-            //{
-            //    //failed
-            //    var x = 1;
-            //}        
 
 
-            //foreach (Project project in _applicationObject.Solution.Projects)
-            //{
-            //    ProcessProject(solutionService, project);
-            //}
-
-
-            //var processedProjects = new List<Project>();
-            //var pendingProjects = new Stack<Project>(startupProjects);
-
-            //while (pendingProjects.Any())
-            //{
-            //    var next = pendingProjects.Pop();
-            //    var vsp = next.Object as VSLangProj.VSProject;
-            //    var refs = vsp.References;
-
-            //    var x = 0;
-            //}
-
-
-
-            //var dte = package.GetServiceAsync(typeof(SDTE)) as EnvDTE.DTE;
-            //dte.ActiveSolutionProjects
-        }
-
-        private void ProcessProject(IVsSolution solutionService, Project project)
-        {
-            IVsHierarchy projectHierarchy = null;
-
-            if (solutionService.GetProjectOfUniqueName(project.UniqueName, out projectHierarchy) == S_OK)
-            {
-                if (projectHierarchy != null)
-                {
-                    //ProcessProjectItems(solutionService, projectHierarchy, project.ProjectItems);
-                    var x = 0;
-                }
-            }
         }
 
 
