@@ -98,7 +98,7 @@ namespace DependencyGraph
         private void Execute(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            ExecuteAsync().GetAwaiter().GetResult();
+            Task.Run(async () => await ExecuteAsync());
         }
 
         private async Task ExecuteAsync()
